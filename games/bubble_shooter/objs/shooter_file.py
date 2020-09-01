@@ -60,21 +60,13 @@ class Shooter:
         # Since we want 90 to be when the shooter is pointing straight up, we rotate it
         self.shooter_box = pg.transform.rotate(self.shooter_box, -90)
 
-    def draw_line(self):
-
-        # line(Surface, color, start_pos, end_pos, width=1) -> Rect
-        end = ((cos(radians(self.angle)) * AIM_LENGTH) + DISP_W / 2, BOTTOM_CENTER[1] - (sin(radians(self.angle)) * AIM_LENGTH))
-
-        pg.draw.line(display, BLACK, self.pos, end, 4)
-
     def rotate(self, x):
-        self.draw_line()
-
         # Get angle of rotation (in degrees)
-        self.angle = self.get_angle(x)
+        # self.angle = self.get_angle(x)
+        self.angle = x
 
         # Get a rotated version of the box to display. Note: don't keep rotating the original as that skews the image
-        rotated_box = pg.transform.rotate(self.shooter_box, self.angle)
+        rotated_box = pg.transform.rotate(self.shooter_box, x)
 
         # display the image
         display.blit(rotated_box, rotated_box.get_rect(center=self.pos))
@@ -101,8 +93,6 @@ class Shooter:
             self.reload3 = Bubble(self.reload3_pos)
 
     def get_angle(self, x):
-        # Get mouse position and decompose it into x and y
-        # Do some quick maths and get the angle
-        self.angle += x
+        self.angle = x
         # Restrict the angles, we don't want the user to be able to point all the way
         return max(min(self.angle, ANGLE_MAX), ANGLE_MIN)

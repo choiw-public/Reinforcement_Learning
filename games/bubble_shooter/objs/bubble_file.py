@@ -18,24 +18,12 @@ class Bubble:
 
         self.shake_options = [-1, 0, 1]
 
-    def shake(self):
-        if self.color == BG_COLOR:
-            return
-
-        x, y = self.pos[0], self.pos[1]
-
-        self.pos = (x + random.choice(self.shake_options), y + random.choice(self.shake_options))
-        self.draw()
-        self.pos = (x, y)
-
     def draw(self):
 
         if self.color == BG_COLOR:
             return
 
         x, y = int(self.pos[0]), int(self.pos[1])
-
-        # pg.draw.circle(display, self.color, (x,y), self.radius)
 
         pg.gfxdraw.filled_circle(display, x, y, BUBBLE_RADIUS, self.color)
 
@@ -59,16 +47,12 @@ class Bullet(Bubble):
     def update(self):
 
         if self.exists:
-
             x, y = self.pos
-
             if (x - BUBBLE_RADIUS) <= WALL_BOUND_L:
                 self.dx *= -1
             elif (x + BUBBLE_RADIUS) >= WALL_BOUND_R:
                 self.dx *= -1
-
             self.pos = (x + self.dx, y + self.dy)
-
             self.draw()
 
 

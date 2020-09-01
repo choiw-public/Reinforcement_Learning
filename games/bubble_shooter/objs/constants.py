@@ -42,7 +42,7 @@ ANGLE_MAX = 180 - 20
 ANGLE_MIN = 20
 
 # Moving Bubble Constants
-BUBBLE_VEL = 40
+BUBBLE_VEL = 20
 BUBBLE_RADIUS = 18
 
 # Grid Constants

@@ -32,13 +32,14 @@ class BubbleShooter:
 
         self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
 
-        self.gun.rotate(random.randint(-2, 2))  # Rotate the gun if the mouse is moved
+        self.gun.rotate(90)  # Rotate the gun if the mouse is moved
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
-        self.angle_move = 0
         pygame.display.update()
+        return self.image_to_state()
 
     def manual_play(self):
+        raise ValueError("re-configure this method.")
         self.initialize_game()
         while not self.game.over:
             clock.tick(60)  # 60 FPS
@@ -71,26 +72,33 @@ class BubbleShooter:
         # # the resized image is considered as state
         # # Note: "state_size" [height, width], but opencv accept [width, and height]
         img_raw = pygame.surfarray.array3d(display)[WALL_BOUND_L:WALL_BOUND_R, :, :]
-        img_raw = cv.cvtColor(np.transpose(img_raw, [1, 0, 2]), cv.COLOR_RGB2GRAY) / 255.0
-        # crop raw_screen from bottom so that the square image
-        h, w = img_raw.shape
+        img_raw = np.transpose(img_raw, [1, 0, 2]) / 255.0
+        h, w, _ = img_raw.shape
         scale = float(self.state_size) / float(max(h, w))
         return cv.resize(img_raw, (int(w * scale), int(h * scale)))
 
-    def take_action(self, action):
-        if action == 0:  # stay
-            self.angle_move = 0
-        elif action == 1:  # move left
-            self.angle_move += 1
-        elif action == 2:  # move right
-            self.angle_move -= 1
-        elif action == 3:
-            self.angle_move = 0
-        elif action == 4:
-            self.gun.fire()
+    def take_action(self, angle):
         self.background.draw()  # Draw BG first
         self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
-        self.gun.rotate(self.angle_move)  # Rotate the gun if the mouse is moved
+        self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
+        self.gun.fire()
+        self.gun.draw_bullets()  # Draw and update bullet and reloads
+        self.game.drawScore()  # draw score
+        pygame.display.update()
+        while self.gun.fired.exists:
+            self.background.draw()  # Draw BG first
+            self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
+            self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
+            self.gun.draw_bullets()  # Draw and update bullet and reloads
+            self.game.drawScore()  # draw score
+            pygame.display.update()
+        return self.image_to_state(), self.game.over, self.grid_manager.reward
+
+    def take_action_backup(self, angle):
+        self.background.draw()  # Draw BG first
+        self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
+        self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
+        self.gun.fire()
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
         pygame.display.update()

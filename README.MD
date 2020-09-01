@@ -6,13 +6,13 @@ RL can be used in robotics, traffic light control, stock trading etc.
 **Demo of trained models**
 * Adventurer (vegetarian version)
 
-![demo](demo/adventurer/demo1.gif) ![demo](demo/adventurer/demo2.gif) ![demo](demo/adventurer/demo3.gif)\
+![demo](demo/vegetarian/demo1.gif) ![demo](demo/vegetarian/demo2.gif) ![demo](demo/vegetarian/demo3.gif)\
 The adventurer is a vegetarian, he needs to evade meats. 
  I set the surface slippery to make it hard to control. 
  Use ```Left``` and ```right``` to move. 
 
-* Bubble Shooter\
-Coming soon...\
+* Bubble Shooter (not trained yet, coming soon)\
+![demo](demo/bubble/demo.gif)\
 Shoot the bubbles and match the color to pop.
  Game over if a bubble hits the ground.
  ```Left``` and ```right``` to aim, ```space bar``` to shoot. 

@@ -123,11 +123,11 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
 
     def train_deep_q(self):
         self.config_train()
-        onehot_actions = tf.one_hot(self.actions, self.num_actions)
         self.build_cnn(self.num_actions)
         self.state_population = Queue()
         self.fill_initial_states()
 
+        onehot_actions = tf.one_hot(self.actions, self.num_actions)
         q_value = tf.reduce_sum(tf.multiply(self.output, onehot_actions), axis=1)
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         self.loss = tf.reduce_mean(tf.square(self.q_hat - q_value))
@@ -214,8 +214,8 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
                                                                  self.is_train: True})
                     # episode_ends = (next_state_batch == np.zeros(current_state_batch[0].shape)).all(axis=(1, 2, 3))
                     # target_Qs[episode_ends] = (0, 0, 0)
-                    collision_index = rewards_batch < 0
-                    target_Qs[collision_index] = (0, 0, 0)
+                    end_game_index = rewards_batch < 0
+                    target_Qs[end_game_index] = (0, 0, 0)
 
                     q_hat = rewards_batch + self.gamma * np.max(target_Qs, axis=1)
 
