@@ -132,16 +132,11 @@ class AdventurerTheVegetarian:
             self.screen.blit(meat, (meat_x, meat_y))
         pygame.display.update()
 
-    def image_to_state(self, step):
+    def image_to_state(self):
         # # normalize screen image and resize to a small image
         # # the resized image is considered as state
         # # Note: "state_size" [height, width], but opencv accept [width, and height]
         img_raw = pygame.surfarray.array3d(self.screen)
-
-        tmp = cv.resize(img_raw, dsize=(320, 240))
-        tmp = np.pad(tmp, [[5, 5], [5, 5], [0, 0]])
-        cv.imwrite('./demo/private_adventurer/raw_frames/frame%04d.jpg' % step, np.transpose(tmp[:, :, ::-1], [1, 0, 2]))
-
         img_raw = cv.cvtColor(np.transpose(img_raw, [1, 0, 2]), cv.COLOR_RGB2GRAY) / 255.0
 
         h, w = img_raw.shape
@@ -218,4 +213,4 @@ class AdventurerTheVegetarian:
             self.meat_y_pos.append(0)
         self.update_display(action)
         if not manual:
-            return self.image_to_state(step)
+            return self.image_to_state()
