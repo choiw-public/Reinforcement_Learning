@@ -11,7 +11,7 @@ class CNN:
         net = tf.layers.batch_normalization(net, training=self.is_train)
         net = tf.nn.relu(net)
 
-        net = tf.layers.conv2d(net, 32, 3, 2, 'valid')
+        net = tf.layers.conv2d(net, 16, 3, 2, 'valid')
         net = tf.layers.batch_normalization(net, training=self.is_train)
         net = tf.nn.relu(net)
 
@@ -19,9 +19,9 @@ class CNN:
         net = tf.layers.batch_normalization(net, training=self.is_train)
         net = tf.nn.relu(net)
 
-        # net = tf.layers.conv2d(net, 64, 3, 2, 'valid')
-        # net = tf.layers.batch_normalization(net, training=self.is_train)
-        # net = tf.nn.relu(net)
+        net = tf.layers.conv2d(net, 32, 3, 2, 'valid')
+        net = tf.layers.batch_normalization(net, training=self.is_train)
+        net = tf.nn.relu(net)
 
         net = tf.layers.conv2d(net, 64, 3, 2, 'valid')
         net = tf.layers.batch_normalization(net, training=self.is_train)
@@ -51,7 +51,7 @@ class Queue:
 
 class BubbleDeepQ(CNN):
     def __init__(self, config):
-        self.state_size = 65
+        self.state_size = 129
         self.num_actions = 5
         game = BubbleShooter(self.state_size)
         self.initialize_game = game.initialize_game
@@ -80,13 +80,13 @@ class BubbleDeepQ(CNN):
         self.decay_rate = 0.0001
         self.batch_size = 64
         self.gamma = 0.99  # future reward discount
-        self.lr = 0.00001  # learning rate
-        self.save_dir = './checkpoints/vegetarian/Deep-Q'
+        self.lr = 0.0001  # learning rate
+        self.save_dir = './checkpoints/bubble/Deep-Q'
 
     def config_test(self):
         self.max_step_per_episode = 500
         self.num_repeat_episode = 5
-        self.save_dir = './checkpoints/vegetarian/Deep-Q'
+        self.save_dir = './checkpoints/bubble/Deep-Q'
 
     def fill_initial_states(self):
         # raw_screen: capture of the game screen
@@ -113,7 +113,7 @@ class BubbleDeepQ(CNN):
                         next_state = np.stack(state_queue, axis=2)
                         self.state_population.add((current_state,
                                                    random_action,
-                                                   -50,
+                                                   reward,
                                                    next_state))
                         break
                     state_queue.append(next_frame)
@@ -165,7 +165,7 @@ class BubbleDeepQ(CNN):
             state_queue = deque(maxlen=self.state_stack_num)
             for step in range(self.max_step_per_episode):
                 if step < 20:  # let it skip first 40 frames
-                    frame, self.is_end, reward = self.take_action(0, step)
+                    frame, self.is_end, reward = self.take_action(0)
                     if 20 - step <= self.state_stack_num:
                         state_queue.append(frame)
                         current_state = np.stack(state_queue, axis=2)
@@ -223,7 +223,7 @@ class BubbleDeepQ(CNN):
                     # episode_ends = (next_state_batch == np.zeros(current_state_batch[0].shape)).all(axis=(1, 2, 3))
                     # target_Qs[episode_ends] = (0, 0, 0)
                     collision_index = rewards_batch < 0
-                    target_Qs[collision_index] = (0, 0, 0)
+                    target_Qs[collision_index] = (0, 0, 0, 0, 0)
 
                     q_hat = rewards_batch + self.gamma * np.max(target_Qs, axis=1)
 
@@ -234,10 +234,9 @@ class BubbleDeepQ(CNN):
 
             print('Episode: {},'.format(episode),
                   'total_reward: {:.4f},'.format(total_reward),
-                  'explor prob: {:.4f}'.format(explore_prob),
-                  'mead add prob: {:.4f}'.format(self.meat_add_prob))
+                  'explor prob: {:.4f}'.format(explore_prob))
             summary_writer.add_summary(sess.run(summary_op, {total_reward_ph: total_reward}), episode)
-            if episode % 100 == 0:
+            if episode % 10 == 0:
                 saver.save(sess, self.save_dir + '/model', episode)
 
     def test_deep_q_all(self):

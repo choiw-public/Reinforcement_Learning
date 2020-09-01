@@ -3,9 +3,7 @@
 This repository includes python codes of reinforcement learning (RL) models (for now only Deep-Q).
 RL can be used in robotics, traffic light control, stock trading etc.  
  
-**Demo**\
-The videos demonstrate how a trained RL model plays the game.
-You can also play the games.
+**Demo of trained models**
 * Adventurer (vegetarian version)
 
 ![demo](demo/adventurer/demo1.gif) ![demo](demo/adventurer/demo2.gif) ![demo](demo/adventurer/demo3.gif)\

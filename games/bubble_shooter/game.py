@@ -94,4 +94,4 @@ class BubbleShooter:
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
         pygame.display.update()
-        return self.image_to_state(), self.game.over, self.game.reward
+        return self.image_to_state(), self.game.over, self.grid_manager.reward

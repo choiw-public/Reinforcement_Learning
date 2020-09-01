@@ -17,6 +17,7 @@ class GridManager:
         # Initialize the grid
         self.grid = [[0 for col in range(self.cols)] for row in range(self.rows)]
 
+
         # Put bubbles in the grid
         for row in range(self.rows):
             for col in range(self.cols):
@@ -42,7 +43,7 @@ class GridManager:
 
     # This is the Handler function of the manager, it handles the Handler logic of the grid
     def view(self, gun, game):
-
+        self.reward = 0
         # if a bullet has been fired, check for collisions, pretty simple
         if gun.fired.exists:
             self.checkCollision(gun.fired)
@@ -234,16 +235,15 @@ class GridManager:
 
         # get a list of all the bubbles of the same color using dept first search
         cluster = self.findCluster(bubble)
-        game.reward = 0
         if (len(cluster) >= 3) or (bubble.color == BLACK):
             while len(cluster) > 0:
                 bubble = cluster.pop()
 
-                frames = bubble.pop()
+                bubble.pop()
                 # self.animations.append(frames)
 
                 game.score += 1
-                game.reward += 1
+                self.reward += 1
 
                 for comrade in bubble.getComrades():
                     if comrade.exists and (comrade not in cluster):
