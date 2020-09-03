@@ -2,12 +2,15 @@ import time
 from games.bubble_shooter.objs.bubble_file import *
 from math import sqrt
 import pygame as pg
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class GridManager:
 
     def __init__(self):
         self.rows = GRID_ROWS  # Initialize the amount of rows
+        # self.rows = random.randint(5, 15)  # Initialize the amount of rows
         self.cols = GRID_COLS  # Initialize the amount if cols
         self.even_offset = True  # Which rows (even or odd) are offset
 
@@ -17,6 +20,8 @@ class GridManager:
         # Initialize the grid
         self.grid = [[0 for col in range(self.cols)] for row in range(self.rows)]
 
+        # Initialize state to be used in reinforcement-learning
+        self.state = np.zeros((GAMEOVER_ROWS + 1, GRID_COLS * 2 + 1, 3))
 
         # Put bubbles in the grid
         for row in range(self.rows):
@@ -153,7 +158,8 @@ class GridManager:
     def updateRows(self):
 
         # after 'APPEND_COUNTDOWN' of collisions, add a row to the top
-        if (self.collision_counter % APPEND_COUNTDOWN == 0) and (self.collision_counter != 0): self.appendTop()
+        if (self.collision_counter % APPEND_COUNTDOWN == 0) and (self.collision_counter != 0):
+            self.appendTop()
 
         # if theres an existent bubble in the very last row, add a new row to the bottom
         # A bullet takes the place of a non-existent bubble so there should always be an empty
@@ -193,12 +199,21 @@ class GridManager:
         self.grid.insert(0, new_row)
 
         # calc the new position for every bubble
+        new_state = np.zeros_like(self.state)
         for row in range(self.rows):
             for col in range(self.cols):
                 self.grid[row][col].pos = GridManager.calcPos(row, col, self.even_offset)
                 # the bubbles are connected to other bubble objects, so we don't need to calc the comrades of every bubble
                 # we only need to reset the comrades of the bubbles of the first two rows
-                if (row == 0) or (row == 1): self.findComrades(self.grid[row][col])
+                if (row == 0) or (row == 1):
+                    self.findComrades(self.grid[row][col])
+                color = self.grid[row][col].color
+                if color not in [None, "No color"]:
+                    col = col * 2
+                    if row % 2 == 1 and not self.even_offset:
+                        col += 1
+                    self.state[row, col:col + 2, :] = np.stack([color, color], 0)
+        self.state = new_state
 
     # a simple function to add to the bottom
     def appendBottom(self):
@@ -235,10 +250,22 @@ class GridManager:
 
         # get a list of all the bubbles of the same color using dept first search
         cluster = self.findCluster(bubble)
+        if not len(cluster):
+            self.reward = -1.0
+        else:
+            self.reward = ((len(cluster)) - 1) ** 1.05
+            if len(cluster) > 10:
+                print('WOW!!! %d bubbles are popped' % len(cluster))
+
         if (len(cluster) >= 3) or (bubble.color == BLACK):
             while len(cluster) > 0:
                 bubble = cluster.pop()
 
+                if bubble.row % 2 == 0 and self.even_offset:
+                    col = bubble.col * 2 + 1
+                else:
+                    col = bubble.col * 2
+                self.state[bubble.row, col:col + 2, :] = (0, 0, 0)
                 bubble.pop()
                 # self.animations.append(frames)
 
@@ -248,7 +275,8 @@ class GridManager:
                 for comrade in bubble.getComrades():
                     if comrade.exists and (comrade not in cluster):
                         rooted = self.findRoot(comrade)
-                        if not rooted: cluster.append(comrade)
+                        if not rooted:
+                            cluster.append(comrade)
 
     def findCluster(self, bubble, reached=None):
 
@@ -354,12 +382,20 @@ class GridManager:
         return (x, y)
 
     def draw(self):
+        self.state = np.zeros_like(self.state)
         for row in range(self.rows):
             for col in range(self.cols):
                 # if (self.collision_counter + 1) % APPEND_COUNTDOWN == 0:
                 #     self.grid[row][col].shake()
                 # else:
-                self.grid[row][col].draw()
+                color = self.grid[row][col].draw()
+                if color is not None:
+                    col = col * 2
+                    if (row % 2 == 0) == self.even_offset:
+                        col += 1
+                    self.state[row, col:col + 2, :] = np.stack([color, color], 0)
+                else:
+                    pass
 
         # for animation in self.animations:
         #     if not animation:

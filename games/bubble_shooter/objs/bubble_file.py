@@ -31,6 +31,7 @@ class Bubble:
         offset = 110
         outline_color = (max(r - offset, 0), max(g - offset, 0), max(b - offset, 0))
         pg.gfxdraw.aacircle(display, x, y, BUBBLE_RADIUS, outline_color)
+        return self.color
 
 
 class Bullet(Bubble):

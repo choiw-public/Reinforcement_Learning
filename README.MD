@@ -1,7 +1,7 @@
 # Reinforcement Learning 
 
-This repository includes python codes of reinforcement learning (RL) models (for now only Deep-Q).
-RL can be used in robotics, traffic light control, stock trading etc.  
+This repository includes python codes of reinforcement learning (RL) models.
+RL can be used in robotics, traffic light control, stock trading etc.
  
 **Demo of trained models**
 * Adventurer (vegetarian version)
@@ -11,11 +11,10 @@ The adventurer is a vegetarian, he needs to evade meats.
  I set the surface slippery to make it hard to control. 
  Use ```Left``` and ```right``` to move. 
 
-* Bubble Shooter (not trained yet, coming soon)\
-![demo](demo/bubble/demo.gif)\
-Shoot the bubbles and match the color to pop.
- Game over if a bubble hits the ground.
- ```Left``` and ```right``` to aim, ```space bar``` to shoot. 
+* Bubble Shooter (not trained yet, coming soon)
+
+![demo](demo/bubble/demo1.gif) ![demo](demo/bubble/demo2.gif)\
+Shoot the bubbles and match the color to pop. 
 
 
 **Game Assets**
@@ -37,12 +36,12 @@ Shoot the bubbles and match the color to pop.
 run.py --game='vegetarian' --phase='manual_play'
 ```
 
-**To train a RL model (for now, Deep-Q is only included)**
+**To train a RL model (more RL models are coming)**
 ```
 run.py --game='vegetarian' --phase='train'
 ```
 
-**Let the trained RL model play the game**
+**To test a trained model**
 ```
 run.py --game='vegetarian' --phase='test'
 ``` 

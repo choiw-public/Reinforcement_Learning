@@ -14,8 +14,9 @@ class BubbleShooter:
     This game is from:https://github.com/PranavB6/Bubbles_2.0
     """
 
-    def __init__(self, state_size):
-        self.state_size = state_size
+    def __init__(self):
+        self.vis = True
+        self.frame_count = 0
 
     def initialize_game(self):
         # Create background
@@ -36,7 +37,10 @@ class BubbleShooter:
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
         pygame.display.update()
-        return self.image_to_state()
+        # display.fill((255, 255, 255))
+        # self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
+        # self.gun.draw_bullets()  # Draw and update bullet and reloads
+        return self.get_state()
 
     def manual_play(self):
         raise ValueError("re-configure this method.")
@@ -67,15 +71,25 @@ class BubbleShooter:
                 self.initialize_game()
             pygame.display.update()
 
-    def image_to_state(self):
-        # # normalize screen image and resize to a small image
-        # # the resized image is considered as state
-        # # Note: "state_size" [height, width], but opencv accept [width, and height]
-        img_raw = pygame.surfarray.array3d(display)[WALL_BOUND_L:WALL_BOUND_R, :, :]
-        img_raw = np.transpose(img_raw, [1, 0, 2]) / 255.0
-        h, w, _ = img_raw.shape
-        scale = float(self.state_size) / float(max(h, w))
-        return cv.resize(img_raw, (int(w * scale), int(h * scale)))
+    def get_state(self):
+        checkboard = self.grid_manager.state
+        checkboard = np.repeat(checkboard, 2, 0)[:-1, ::]
+        masks = []
+        for bc in BUBBLE_COLORS:
+            lower = np.array(bc) - 1
+            upper = np.array(bc) + 1
+            mask = cv.inRange(checkboard, lower, upper)
+            mask[mask > 0] = 1
+            masks.append(mask)
+
+        bullets = [self.gun.loaded.color, self.gun.reload1.color, self.gun.reload2.color, self.gun.reload3.color]
+        state = []
+        for bc in bullets[:3]:
+            index = BUBBLE_COLORS.index(bc)
+            main = masks[index]
+            others = np.sum(masks[:index] + masks[index + 1:], axis=0)
+            state.append(np.stack([main, others], 2))
+        return np.concatenate(state, 2)
 
     def take_action(self, angle):
         self.background.draw()  # Draw BG first
@@ -91,15 +105,13 @@ class BubbleShooter:
             self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
             self.gun.draw_bullets()  # Draw and update bullet and reloads
             self.game.drawScore()  # draw score
+            reward = self.grid_manager.reward
+            if self.game.over:
+                reward = -50
+            elif np.sum(self.grid_manager.state) == 0:
+                reward = 100
+                pygame.display.update()
+                print('WOW!!! You Won')
+                return self.get_state(), True, reward
             pygame.display.update()
-        return self.image_to_state(), self.game.over, self.grid_manager.reward
-
-    def take_action_backup(self, angle):
-        self.background.draw()  # Draw BG first
-        self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
-        self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
-        self.gun.fire()
-        self.gun.draw_bullets()  # Draw and update bullet and reloads
-        self.game.drawScore()  # draw score
-        pygame.display.update()
-        return self.image_to_state(), self.game.over, self.grid_manager.reward
+        return self.get_state(), self.game.over, reward
