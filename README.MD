@@ -11,7 +11,7 @@ The adventurer is a vegetarian, he needs to evade meats.
  I set the surface slippery to make it hard to control. 
  Use ```Left``` and ```right``` to move. 
 
-* Bubble Shooter (not trained yet, coming soon)
+* Bubble Shooter
 
 ![demo](demo/bubble/demo1.gif) ![demo](demo/bubble/demo2.gif)\
 Shoot the bubbles and match the color to pop. 
