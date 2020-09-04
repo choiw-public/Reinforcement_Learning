@@ -15,7 +15,6 @@ class BubbleShooter:
     """
 
     def __init__(self):
-        self.vis = True
         self.frame_count = 0
 
     def initialize_game(self):
@@ -43,11 +42,10 @@ class BubbleShooter:
         return self.get_state()
 
     def manual_play(self):
-        raise ValueError("re-configure this method.")
         self.initialize_game()
+        angle = 90
         while not self.game.over:
             clock.tick(60)  # 60 FPS
-            # quit when you press the x
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
@@ -55,16 +53,14 @@ class BubbleShooter:
 
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
-                        self.angle_move += 1
+                        angle += 1
                     elif event.key == pygame.K_RIGHT:
-                        self.angle_move -= 1
+                        angle -= 1
                     elif event.key == pygame.K_SPACE:
                         self.gun.fire()
-                else:
-                    self.angle_move = 0
             self.background.draw()  # Draw BG first
             self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
-            self.gun.rotate(self.angle_move)  # Rotate the gun if the mouse is moved
+            self.gun.rotate(angle)  # Rotate the gun if the mouse is moved
             self.gun.draw_bullets()  # Draw and update bullet and reloads
             self.game.drawScore()  # draw score
             if self.game.over:
@@ -98,13 +94,7 @@ class BubbleShooter:
         self.gun.fire()
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
-        if self.vis:
-            pygame.display.update()
-            if self.frame_count % 10 == 0:
-                img_raw = np.transpose(pygame.surfarray.array3d(display), [1, 0, 2])[:, 100:-100, :][:, :, ::-1]
-                img_raw = np.pad(cv.resize(img_raw, (350, 350)), [[3, 3], [3, 3], [0, 0]])
-                cv.imwrite('./demo/private_bubble/%04d.jpg' % self.frame_count, img_raw)
-            self.frame_count += 1
+        pygame.display.update()
         while self.gun.fired.exists:
             self.background.draw()  # Draw BG first
             self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
@@ -119,13 +109,5 @@ class BubbleShooter:
                 pygame.display.update()
                 print('WOW!!! You Won')
                 return self.get_state(), True, reward
-            if self.vis:
-                pygame.display.update()
-                if self.frame_count % 10 == 0:
-                    img_raw = np.transpose(pygame.surfarray.array3d(display), [1, 0, 2])[:, 100:-100, :][:, :, ::-1]
-                    img_raw = np.pad(cv.resize(img_raw, (350, 350)), [[3, 3], [3, 3], [0, 0]])
-                    cv.imwrite('./demo/private_bubble/%04d.jpg' % self.frame_count, img_raw)
-                self.frame_count += 1
-
-        pygame.display.update()
+            pygame.display.update()
         return self.get_state(), self.game.over, reward
