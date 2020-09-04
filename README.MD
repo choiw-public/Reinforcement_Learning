@@ -25,7 +25,7 @@ Shoot the bubbles and match the color to pop.
 
 **Dependancies**
 * Python v3.7
-* Tensorflow v1.15
+* TensorFlow v1.15
 * NumPy
 * OpenCV
 * PyGame
