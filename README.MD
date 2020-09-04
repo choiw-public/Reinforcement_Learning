@@ -16,7 +16,6 @@ The adventurer is a vegetarian, he needs to evade meats.
 ![demo](demo/bubble/demo1.gif) ![demo](demo/bubble/demo2.gif)\
 Shoot the bubbles and match the color to pop. 
 
-
 **Game Assets**
 * Adventurer
   - Adventurer images: https://rvros.itch.io/animated-pixel-hero

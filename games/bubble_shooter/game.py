@@ -98,7 +98,13 @@ class BubbleShooter:
         self.gun.fire()
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
-        pygame.display.update()
+        if self.vis:
+            pygame.display.update()
+            if self.frame_count % 10 == 0:
+                img_raw = np.transpose(pygame.surfarray.array3d(display), [1, 0, 2])[:, 100:-100, :][:, :, ::-1]
+                img_raw = np.pad(cv.resize(img_raw, (350, 350)), [[3, 3], [3, 3], [0, 0]])
+                cv.imwrite('./demo/private_bubble/%04d.jpg' % self.frame_count, img_raw)
+            self.frame_count += 1
         while self.gun.fired.exists:
             self.background.draw()  # Draw BG first
             self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
@@ -113,5 +119,13 @@ class BubbleShooter:
                 pygame.display.update()
                 print('WOW!!! You Won')
                 return self.get_state(), True, reward
-            pygame.display.update()
+            if self.vis:
+                pygame.display.update()
+                if self.frame_count % 10 == 0:
+                    img_raw = np.transpose(pygame.surfarray.array3d(display), [1, 0, 2])[:, 100:-100, :][:, :, ::-1]
+                    img_raw = np.pad(cv.resize(img_raw, (350, 350)), [[3, 3], [3, 3], [0, 0]])
+                    cv.imwrite('./demo/private_bubble/%04d.jpg' % self.frame_count, img_raw)
+                self.frame_count += 1
+
+        pygame.display.update()
         return self.get_state(), self.game.over, reward
