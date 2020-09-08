@@ -13,10 +13,6 @@ class BubbleShooter:
     """
     This game is from:https://github.com/PranavB6/Bubbles_2.0
     """
-
-    def __init__(self):
-        self.frame_count = 0
-
     def initialize_game(self):
         # Create background
         self.background = Background()
@@ -94,7 +90,7 @@ class BubbleShooter:
         self.gun.fire()
         self.gun.draw_bullets()  # Draw and update bullet and reloads
         self.game.drawScore()  # draw score
-        pygame.display.update()
+        # pygame.display.update()
         while self.gun.fired.exists:
             self.background.draw()  # Draw BG first
             self.grid_manager.view(self.gun, self.game)  # Check collision with bullet and update grid as needed
@@ -109,5 +105,6 @@ class BubbleShooter:
                 pygame.display.update()
                 print('WOW!!! You Won')
                 return self.get_state(), True, reward
-            pygame.display.update()
+            # pygame.display.update()
+        pygame.display.update()
         return self.get_state(), self.game.over, reward

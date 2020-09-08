@@ -46,10 +46,10 @@ class Queue:
 
 class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
     def __init__(self, config):
+        self.state_size = 65
         if config.phase == 'manual_play':
             self.manual_play()
         self.state_stack_num = 4
-        self.state_size = 65
         self.deep_q()
         if config.phase == 'train':
             self.train_deep_q()
@@ -82,36 +82,35 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
 
         while self.state_population.count < self.batch_size:
             self.initialize_game()
-
-            # duplicate the frame by "state_stack_num" times
             state_queue = deque(maxlen=self.state_stack_num)
+            # iterate to fill get very first state
+            for i in range(self.state_stack_num):
+                frame, _, _ = self.take_action(0)
+                state_queue.append(frame)
+            current_state = np.stack(state_queue, axis=2)
+
             for step in range(1, self.max_step_per_episode):
-                if step < 20:  # let it skip first 40 frames
-                    frame = self.take_action(0, step)
-                    if 20 - step <= self.state_stack_num:
-                        state_queue.append(frame)
-                        current_state = np.stack(state_queue, axis=2)
-                else:
-                    random_action = np.random.randint(0, self.num_actions)
-                    next_frame = self.take_action(random_action, step)  # this is next_state
-                    if self.is_end:
-                        next_frame = np.zeros([self.state_size, self.state_size])
-                        state_queue.append(next_frame)
-
-                        next_state = np.stack(state_queue, axis=2)
-
-                        self.state_population.add((current_state,
-                                                   random_action,
-                                                   self.reward,
-                                                   next_state))
-                        break
+                random_action = np.random.randint(0, self.num_actions)
+                next_frame, is_end, reward = self.take_action(random_action)  # this is next_state
+                if is_end:
+                    next_frame = np.zeros([self.state_size, self.state_size])
                     state_queue.append(next_frame)
+
                     next_state = np.stack(state_queue, axis=2)
+
                     self.state_population.add((current_state,
                                                random_action,
-                                               self.reward,
+                                               reward,
                                                next_state))
-                    current_state = next_state
+                    break
+                state_queue.append(next_frame)
+                next_state = np.stack(state_queue, axis=2)
+                self.state_population.add((current_state,
+                                           random_action,
+                                           reward,
+                                           next_state))
+                current_state = next_state
+
         print('initial Queue is filled')
 
     def deep_q(self, num_actions=3):
@@ -132,7 +131,6 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         self.loss = tf.reduce_mean(tf.square(self.q_hat - q_value))
         optm = tf.train.RMSPropOptimizer(self.lr).minimize(self.loss)
-        # optm = tf.train.AdamOptimizer(self.lr).minimize(self.loss)
         self.optm = tf.group([optm, update_ops])
         saver = tf.train.Saver(max_to_keep=1000)
         total_reward_ph = tf.placeholder(tf.int64)
@@ -153,76 +151,75 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
             # current_state[:, :, 2] = next_state[:, :, 1]
             # current_state[:, :, 3] = next_state[:, :, 2]
             state_queue = deque(maxlen=self.state_stack_num)
+            # iterate to fill get very first state
+            for i in range(self.state_stack_num):
+                frame, _, _ = self.take_action(0)
+                state_queue.append(frame)
+            current_state = np.stack(state_queue, axis=2)
             for step in range(self.max_step_per_episode):
-                if step < 20:  # let it skip first 40 frames
-                    frame = self.take_action(0, step)
-                    if 20 - step <= self.state_stack_num:
-                        state_queue.append(frame)
-                        current_state = np.stack(state_queue, axis=2)
+                length += 1
+                # Explore or Exploit
+                explore_prob = self.explore_stop + \
+                               (self.explore_start - self.explore_stop) * \
+                               np.exp(-self.decay_rate * length)
+                if explore_prob > np.random.rand():
+                    # explore and get random action
+                    action = np.random.randint(self.num_actions)
                 else:
-                    length += 1
-                    # Explore or Exploit
-                    explore_prob = self.explore_stop + \
-                                   (self.explore_start - self.explore_stop) * \
-                                   np.exp(-self.decay_rate * length)
-                    if explore_prob > np.random.rand():
-                        # explore and get random action
-                        action = np.random.randint(self.num_actions)
-                    else:
-                        # Get action from the model
-                        feed = {self.state: np.expand_dims(current_state, axis=0),
-                                self.is_train: False}
-                        Qs = sess.run(self.output, feed_dict=feed)
-                        action = np.argmax(Qs)
+                    # Get action from the model
+                    feed = {self.state: np.expand_dims(current_state, axis=0),
+                            self.is_train: False}
+                    Qs = sess.run(self.output, feed_dict=feed)
+                    action = np.argmax(Qs)
 
-                    # Take an action, get a new state and the corresponding reward
-                    next_frame = self.take_action(action, step)
-                    if self.is_end:
-                        next_frame = np.zeros([self.state_size, self.state_size])
-                        state_queue.append(next_frame)
-
-                        next_state = np.stack(state_queue, axis=2)
-
-                        self.state_population.add((current_state,
-                                                   action,
-                                                   self.reward,
-                                                   next_state))
-                        if best_score < total_reward:
-                            best_score = total_reward
-                            saver.save(sess, self.save_dir + '/model', episode)
-                        break
+                # Take an action, get a new state and the corresponding reward
+                next_frame, is_end, reward = self.take_action(action)
+                if is_end:
+                    next_frame = np.zeros([self.state_size, self.state_size])
                     state_queue.append(next_frame)
 
                     next_state = np.stack(state_queue, axis=2)
-                    total_reward += self.reward
+
                     self.state_population.add((current_state,
                                                action,
-                                               self.reward,
+                                               reward,
                                                next_state))
+                    if best_score < total_reward:
+                        best_score = total_reward
+                        saver.save(sess, self.save_dir + '/model', episode)
+                    break
+                state_queue.append(next_frame)
 
-                    current_state = next_state
+                next_state = np.stack(state_queue, axis=2)
+                total_reward += reward
+                self.state_population.add((current_state,
+                                           action,
+                                           reward,
+                                           next_state))
 
-                    # Sample mini-batch from state_queue
-                    batch = self.state_population.sample(self.batch_size)
-                    current_state_batch = np.array([each[0] for each in batch])
-                    actions_batch = np.array([each[1] for each in batch])
-                    rewards_batch = np.array([each[2] for each in batch])
-                    next_state_batch = np.array([each[3] for each in batch])
+                current_state = next_state
 
-                    # Q values for the next_state, which is going to be our target Q
-                    target_Qs = sess.run(self.output, feed_dict={self.state: next_state_batch,
-                                                                 self.is_train: True})
-                    # episode_ends = (next_state_batch == np.zeros(current_state_batch[0].shape)).all(axis=(1, 2, 3))
-                    # target_Qs[episode_ends] = (0, 0, 0)
-                    end_game_index = rewards_batch < 0
-                    target_Qs[end_game_index] = (0, 0, 0)
+                # Sample mini-batch from state_queue
+                batch = self.state_population.sample(self.batch_size)
+                current_state_batch = np.array([each[0] for each in batch])
+                actions_batch = np.array([each[1] for each in batch])
+                rewards_batch = np.array([each[2] for each in batch])
+                next_state_batch = np.array([each[3] for each in batch])
 
-                    q_hat = rewards_batch + self.gamma * np.max(target_Qs, axis=1)
+                # Q values for the next_state, which is going to be our target Q
+                target_Qs = sess.run(self.output, feed_dict={self.state: next_state_batch,
+                                                             self.is_train: True})
+                # episode_ends = (next_state_batch == np.zeros(current_state_batch[0].shape)).all(axis=(1, 2, 3))
+                # target_Qs[episode_ends] = (0, 0, 0)
+                end_game_index = rewards_batch < 0
+                target_Qs[end_game_index] = (0, 0, 0)
 
-                    loss, _ = sess.run([self.loss, self.optm], feed_dict={self.state: current_state_batch,
-                                                                          self.q_hat: q_hat,
-                                                                          self.actions: actions_batch,
-                                                                          self.is_train: True})
+                q_hat = rewards_batch + self.gamma * np.max(target_Qs, axis=1)
+
+                loss, _ = sess.run([self.loss, self.optm], feed_dict={self.state: current_state_batch,
+                                                                      self.q_hat: q_hat,
+                                                                      self.actions: actions_batch,
+                                                                      self.is_train: True})
 
             print('Episode: {},'.format(episode),
                   'total_reward: {:.4f},'.format(total_reward),
@@ -248,16 +245,19 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
             total_reward = 0
             for episode in range(self.num_repeat_episode):
                 self.initialize_game()
-                frame = self.take_action(np.random.randint(0, self.num_actions), 0)
-                state_queue = deque([frame for _ in range(self.state_stack_num)], maxlen=self.state_stack_num)
+                state_queue = deque(maxlen=self.state_stack_num)
+                # iterate to fill get very first state
+                for i in range(self.state_stack_num):
+                    frame, _, _ = self.take_action(0)
+                    state_queue.append(frame)
                 for step in range(self.max_step_per_episode):
                     state = np.stack(state_queue, axis=2)
                     action = np.argmax(sess.run(self.output, {self.state: np.expand_dims(state, axis=0), self.is_train: False}))
-                    if self.is_end:
+                    if is_end:
                         break
-                    frame = self.take_action(action, step)
+                    frame, is_end, reward = self.take_action(action)
                     state_queue.append(frame)
-                    total_reward += self.reward
+                    total_reward += reward
             ckpt_num = int(ckpt.split('-')[-1])
             print(ckpt_num)
             average_total_reward = float(total_reward) / float(self.num_repeat_episode)
@@ -277,16 +277,19 @@ class VegetarianDeepQ(CNN, AdventurerTheVegetarian):
         total_reward = 0
         for episode in range(self.num_repeat_episode):
             self.initialize_game()
-            frame = self.take_action(np.random.randint(0, self.num_actions), 0)
-            state_queue = deque([frame for _ in range(self.state_stack_num)], maxlen=self.state_stack_num)
+            state_queue = deque(maxlen=self.state_stack_num)
+            # iterate to fill get very first state
+            for i in range(self.state_stack_num):
+                frame, _, _ = self.take_action(0)
+                state_queue.append(frame)
             for step in range(self.max_step_per_episode):
                 state = np.stack(state_queue, axis=2)
                 action = np.argmax(sess.run(self.output, {self.state: np.expand_dims(state, axis=0), self.is_train: False}))
-                frame = self.take_action(action, step)
-                # if self.is_end:
+                frame, is_end, reward = self.take_action(action)
+                # if is_end:
                 #     break
                 state_queue.append(frame)
-                total_reward += self.reward
+                total_reward += reward
         sess.close()
         average_total_reward = float(total_reward) / float(self.num_repeat_episode)
         print("average total reward: %d" % average_total_reward)

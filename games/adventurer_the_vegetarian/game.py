@@ -105,11 +105,15 @@ class AdventurerTheVegetarian:
         self.meat_y_pos = [0]
         self.clock = pygame.time.Clock()
         self.screen = pygame.display.set_mode((self.screen_width, self.screen_height))
+        self.step = 0
+
+        for i in range(20):
+            self.take_action(0)
         self.update_display()
+        return self.image_to_frame()
 
     def manual_play(self):
         self.initialize_game()
-        step = 1
         while True:
             events = pygame.event.get()
             for event in events:
@@ -121,8 +125,8 @@ class AdventurerTheVegetarian:
                 else:
                     action = 0
             self.clock.tick(50)
-            self.take_action(action, step, manual=True)
-            step += 1
+            self.take_action(action, manual=True)
+            self.step += 1
 
     def update_display(self, action=0):
         # self.screen.blit(self.background, (0, 0))
@@ -132,7 +136,7 @@ class AdventurerTheVegetarian:
             self.screen.blit(meat, (meat_x, meat_y))
         pygame.display.update()
 
-    def image_to_state(self):
+    def image_to_frame(self):
         # # normalize screen image and resize to a small image
         # # the resized image is considered as state
         # # Note: "state_size" [height, width], but opencv accept [width, and height]
@@ -148,7 +152,7 @@ class AdventurerTheVegetarian:
         x = character_center - int(self.state_size * 0.5)
         return frame[:, x:x + self.state_size]
 
-    def take_action(self, action, step, manual=False):
+    def take_action(self, action, manual=False):
         self.character_move *= self.character_momentum
         if action == 0:  # stay
             pass
@@ -176,6 +180,7 @@ class AdventurerTheVegetarian:
         # handle meats
         meat_idx_to_remove = []
         self.is_end = False
+        reward = 0
         for meat_idx in range(len(self.meat_y_pos)):
             self.meat_y_pos[meat_idx] += self.meat.speed[meat_idx]
             meat_rect = self.meat.img[meat_idx].get_rect()
@@ -186,10 +191,10 @@ class AdventurerTheVegetarian:
             if character_rect.colliderect(meat_rect):
                 meat_idx_to_remove.append(meat_idx)
                 self.is_end = True
-                self.reward = -5
+                reward = -5
             else:
                 x = self.character_x_pos + character_rect.w * 0.5
-                self.reward = 1.0 / (1.0 + abs((x - 230.0) / 140) ** (2 * 3))
+                reward = 1.0 / (1.0 + abs((x - 230.0) / 140) ** (2 * 3))
             # remove a meat from screen if it's out of screen
             if self.meat_y_pos[meat_idx] > self.screen_height:
                 meat_idx_to_remove.append(meat_idx)
@@ -202,7 +207,7 @@ class AdventurerTheVegetarian:
 
         # add meat by interval
         self.meat_add_prob += 0.0009
-        if step != 0 and step % self.meat_add_interval == 0 and self.meat_add_prob > np.random.uniform(0, 1):
+        if self.step != 0 and self.step % self.meat_add_interval == 0 and self.meat_add_prob > np.random.uniform(0, 1):
             self.meat.add_meat()
 
             if np.random.uniform(0, 1) > 0.8:
@@ -212,5 +217,6 @@ class AdventurerTheVegetarian:
                 self.meat_x_pos.append(max(0, int(np.random.beta(0.8, 0.8) * self.screen_width) - self.meat.width[-1]))
             self.meat_y_pos.append(0)
         self.update_display(action)
+        self.step += 1
         if not manual:
-            return self.image_to_state()
+            return self.image_to_frame(), self.is_end, reward

@@ -38,6 +38,7 @@ class Queue:
     def __init__(self, queue_capacity=10000):
         self.buffer = deque(maxlen=queue_capacity)
         self.count = 0
+        self.queue_capacity = queue_capacity
 
     def add(self, experience):
         self.buffer.append(experience)
@@ -57,10 +58,9 @@ class BubbleDeepQ(CNN):
         self.initialize_game = game.initialize_game
         self.manual_play = game.manual_play
         self.take_action = game.take_action
-        self.is_end = False
         if config.phase == 'manual_play':
             self.manual_play()
-        if config.RL_type == 'deep_q':
+        if config.RL_type == 'policy_gradient':
             self.deep_q(num_actions=36)  # 0 to 140 by 4 interval
             if config.phase == 'train':
                 self.train_deep_q()
@@ -87,12 +87,13 @@ class BubbleDeepQ(CNN):
         self.num_repeat_episode = 5
         self.save_dir = './checkpoints/bubble/Deep-Q'
 
-    def fill_state_population(self, ckpt=None, sess=None, with_trained_model=False):
+    def fill_state_population(self, sess=None, with_trained_model=False):
         # raw_screen: capture of the game screen
         # frame: a single channel image converted from raw_screen
         # state_queue: a queue to enqueue and dequeue
         # current_state & next_state: h x w x 3
         current_state = self.initialize_game()
+        is_end = False
         while True:
             if not with_trained_model:
                 action = random.randint(0, 35)
@@ -103,8 +104,8 @@ class BubbleDeepQ(CNN):
                 Qs = sess.run(self.output, feed_dict=feed)
                 action = np.argmax(Qs)
                 angle = action * 4 + 20
-            next_state, self.is_end, reward = self.take_action(angle)  # this is next_state
-            if self.is_end:
+            next_state, is_end, reward = self.take_action(angle)  # this is next_state
+            if is_end:
                 self.state_population.add((current_state,
                                            action,
                                            reward,
@@ -115,7 +116,7 @@ class BubbleDeepQ(CNN):
                                        reward,
                                        next_state))
             current_state = next_state
-            if self.state_population.count >= self.batch_size:
+            if self.state_population.count >= self.state_population.queue_capacity * 0.5:
                 break
         print('initial Queue is filled')
 
@@ -155,7 +156,7 @@ class BubbleDeepQ(CNN):
         else:
             length = 999999
             saver.restore(sess, ckpt_list[-1].replace('.index', ''))
-            self.fill_state_population(ckpt_list[-1], sess, True)
+            self.fill_state_population(sess, True)
             ep_start = int(ckpt_list[-1].split('-')[-1].split('.')[0])
         for episode in range(ep_start + 1, self.train_episodes):
             tic = time.time()
@@ -184,9 +185,9 @@ class BubbleDeepQ(CNN):
                     action_record.append(action)
 
                 angle = action * 4 + 20  # angle changes by 4, minimum of 20 maxinum of 160
-                next_state, self.is_end, reward = self.take_action(angle)
+                next_state, is_end, reward = self.take_action(angle)
 
-                if self.is_end:
+                if is_end:
                     self.state_population.add((current_state,
                                                action,
                                                reward,
@@ -250,8 +251,8 @@ class BubbleDeepQ(CNN):
                     Qs = sess.run(self.output, feed_dict=feed)
                     action = np.argmax(Qs)
                     angle = action * 4 + 20
-                    state, self.is_end, reward = self.take_action(angle)
-                    if self.is_end:
+                    state, is_end, reward = self.take_action(angle)
+                    if is_end:
                         break
             ckpt_num = int(ckpt.split('-')[-1].split('.')[0])
             print(ckpt_num)
@@ -275,9 +276,9 @@ class BubbleDeepQ(CNN):
                 Qs = sess.run(self.output, feed_dict=feed)
                 action = np.argmax(Qs)
                 angle = action * 4 + 20
-                state, self.is_end, reward = self.take_action(angle)
+                state, is_end, reward = self.take_action(angle)
                 total_reward += reward
-                if self.is_end:
+                if is_end:
                     break
                 total_reward += reward
         print("average_total_reward =%.4f" % (float(total_reward) / float(self.num_repeat_episode)))
