@@ -30,7 +30,7 @@ Shoot the bubbles and match the color to pop.
 * OpenCV
 * PyGame
 
-**To play a game by yourself**
+**To play a game manually**
 ```
 run.py --game='vegetarian' --phase='manual_play'
 ```
